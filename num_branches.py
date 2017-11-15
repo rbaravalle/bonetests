@@ -1,6 +1,6 @@
 import numpy as np
 
-array = np.random.randint(2, size=(10,1))
+#array = np.random.randint(2, size=(10,1))
 
 
 # given an array, compute the number of branches
@@ -30,8 +30,8 @@ def compute_branches(array):
         prev = array[i]
 
 
-    return lens
+    return np.array(lens)
 
-print array
-branches = compute_branches(array)
-print branches, len(branches)
+#print array
+#branches = compute_branches(array)
+#print branches, len(branches)
