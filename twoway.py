@@ -2,15 +2,15 @@
 import numpy as np
 from num_branches import compute_branches
 
-Sx = 20
-Sz = 20
+Sx = 10
+Sz = 10
 
-data = np.random.rand(Sx,Sz)
+data = np.random.rand(Sz,Sx)
 
 data = 1.0*(data > 0.5)
 
-connected = np.zeros((Sx,Sz))
-connected2 = np.zeros((Sx,Sz))
+connected = np.zeros((Sz,Sx))
+connected2 = np.zeros((Sz,Sx))
 
 print "DATA: "
 print data
@@ -44,36 +44,36 @@ def Ax(matrix):
 connected[0] = data[0]
 
 
-for x in range(1,Sx):
-    for z in range(Sz):
-        if (z > 0 and connected[x-1][z-1] == 1) \
-        or connected[x-1][z] == 1  \
-        or (z < Sz-1 and connected[x-1][z+1] == 1):
+for z in range(1,Sz):
+    for x in range(Sx):
+        if (x > 0 and connected[z-1][x-1] == 1) \
+        or connected[z-1][x] == 1  \
+        or (x < Sx-1 and connected[z-1][x+1] == 1):
             # CONNECTED
-            if data[x,z] ==1:
-                connected[x,z] = 1
+            if data[z,x] ==1:
+                connected[z,x] = 1
 
 # down -> up
-connected2[Sx-1] = data[Sx-1]
+connected2[Sz-1] = data[Sz-1]
 
 
-for x in range(Sx-2,-1,-1):
-    for z in range(Sz):
-        if (z > 0 and connected2[x+1][z-1] == 1) \
-        or connected2[x+1][z] == 1 \
-        or (z < Sz-1 and connected2[x+1][z+1] == 1):
+for z in range(Sz-2,-1,-1):
+    for x in range(Sx):
+        if (x > 0 and connected2[z+1][x-1] == 1) \
+        or connected2[z+1][x] == 1 \
+        or (x < Sz-1 and connected2[z+1][x+1] == 1):
             # CONNECTED
-            if data[x,z] == 1:
-                connected2[x,z] = 1
+            if data[z,x] == 1:
+                connected2[z,x] = 1
 
 print connected
 print ""
 print connected2
 
-final = np.logical_and((connected > 0), (connected2 > 0))
-final = 1.0 * final
+loaded = np.logical_and((connected > 0), (connected2 > 0))
+loaded = 1.0 * loaded
 
-print "FINAL: "
-print final
+print "Loaded: "
+print loaded
 
-print Az(final), Ax(final)
+print Az(loaded), Ax(loaded)
