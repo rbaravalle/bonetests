@@ -144,6 +144,57 @@ def p(matrix, z, x):
 
     return result
 
+# return possible neighbors of z,x in matrix
+def get_neighbors(matrix, z, x):
+    neighbors = []
+
+    if z < 0 or x < 0 or z > matrix.shape[0] or x > matrix.shape[1]:
+        print "Invalid call to get_neighbors!. Shape:", matrix.shape, z, x
+        exit()
+
+
+    if z-1 > 0:
+        if x-1 > 0:
+            neighbors.append([z-1, x-1])
+            neighbors.append([z, x-1])
+
+        neighbors.append([z-1, x])
+
+        if x+1 < matrix.shape[1]:
+            neighbors.append([z-1, x+1])
+            neighbors.append([z, x+1])
+
+    if z+1 < matrix.shape[0]:
+        neighbors.append([z+1, x])
+        if x-1 > 0:
+            neighbors.append([z+1, x-1])
+        if x+1 < matrix.shape[1]:
+            neighbors.append([z+1, x+1])
+
+
+    return neighbors
+
+
+# probability of forming new material at pos matrix[z,x]
+def Pplus(matrix, p_matrix, z, x):
+    alpha = 0.003
+    beta = 0.1
+
+    neighbors_pos = get_neighbors(matrix, z, x)
+    n = len(neighbors_pos)
+
+    # pressure at current location
+    pc = p_matrix[z,x]
+
+    sum_gi = 0
+    for i in neighbors_pos:
+        # pressure at neighbor location
+        pi = p_matrix[i[0],i[1]]
+
+        sum_gi += 0 if pi < pc else float(pi) / pc
+
+    return n * alpha + beta * sum_gi
+
 
 data = np.random.rand(Sz,Sx)
 
@@ -166,3 +217,14 @@ for z in range(Sz):
 
 print "p"
 print P
+
+# new material
+pp = np.zeros((Sz, Sx))
+
+for z in range(Sz):
+    for x in range(Sx):
+        if P[z,x] > 0:
+            pp[z,x] = Pplus(loaded, P, z, x)
+
+print "New material matrix"
+print pp
