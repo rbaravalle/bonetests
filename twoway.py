@@ -4,6 +4,7 @@ from num_branches import compute_branches
 
 Sx = 10
 Sz = 10
+void_fraction_start = 0.9
 
 def twoway(data):
 
@@ -69,7 +70,7 @@ def Ax(matrix):
     summ = 0.0
 
     for x in range(Sx):
-        branches = compute_branches(matrix[:,z])
+        branches = compute_branches(matrix[:,x])
         Mx = len(branches)
         if Mx > 0:
             factor = 1.0 / Mx * Mx
@@ -97,7 +98,7 @@ def compute_len_branch_z(matrix, z, x):
     res = 1 # this position
     i = z-1
     
-    while z > 0 and matrix[i, x] > 0:
+    while i > 0 and matrix[i, x] > 0:
         res += 1
         i -= 1
 
@@ -196,35 +197,44 @@ def Pplus(matrix, p_matrix, z, x):
     return n * alpha + beta * sum_gi
 
 
-data = np.random.rand(Sz,Sx)
+# generate matrix with given void fraction
+def generate_matrix(void_fraction, Sz, Sx):
+    
+    data = (np.random.rand(Sz,Sx) > 1 - void_fraction).astype(np.float32)
 
-data = 1.0*(data > 0.5)
+    return data
 
-print "DATA: "
-print data
-print
+def main():
+    data = generate_matrix(void_fraction_start, Sz, Sx)
 
-loaded = twoway(data)
+    print "DATA: "
+    print data
+    print
 
-print "Loaded: "
-print loaded
+    loaded = twoway(data)
 
-P = np.zeros((Sz, Sx))
+    print "Loaded: "
+    print loaded
 
-for z in range(Sz):
-    for x in range(Sx):
-        P[z,x] = p(loaded, z, x)
+    P = np.zeros((Sz, Sx))
 
-print "p"
-print P
+    for z in range(Sz):
+        for x in range(Sx):
+            P[z,x] = p(loaded, z, x)
 
-# new material
-pp = np.zeros((Sz, Sx))
+    print "p"
+    print P
 
-for z in range(Sz):
-    for x in range(Sx):
-        if P[z,x] > 0:
-            pp[z,x] = Pplus(loaded, P, z, x)
+    # new material
+    pp = np.zeros((Sz, Sx))
 
-print "New material matrix"
-print pp
+    for z in range(Sz):
+        for x in range(Sx):
+            if P[z,x] > 0:
+                pp[z,x] = Pplus(loaded, P, z, x)
+
+    print "New material matrix"
+    print pp
+
+if __name__ == '__main__':
+    main()
