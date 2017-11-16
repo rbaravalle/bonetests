@@ -2,17 +2,15 @@
 import numpy as np
 from num_branches import compute_branches
 import Image
+import argparse
 
-Sx = 40
-Sz = 40
 void_fraction_start = 0.95
-steps = 30
 pminus = 0.007
 k = 0.9
 Fz = 9 # MISSING
 a = 1 # MISSING
 
-def twoway(data):
+def twoway(data, Sz, Sx):
 
     connected = np.zeros((Sz,Sx))
     connected2 = np.zeros((Sz,Sx))
@@ -60,7 +58,7 @@ def twoway(data):
 def Az(matrix):
     summ = 0.0
 
-    for z in range(Sz):
+    for z in range(matrix.shape[0]):
         branches = compute_branches(matrix[z])
         Mz = len(branches)
         if Mz > 0:
@@ -73,7 +71,7 @@ def Az(matrix):
 def Ax(matrix):
     summ = 0.0
 
-    for x in range(Sx):
+    for x in range(matrix.shape[1]):
         branches = compute_branches(matrix[:,x])
         Mx = len(branches)
         if Mx > 0:
@@ -92,7 +90,7 @@ def compute_len_branch_x(matrix, z, x):
 
     i = x+1
 
-    while i < Sx and matrix[z,i] > 0:
+    while i < matrix.shape[1] and matrix[z,i] > 0:
         res += 1
         i += 1
 
@@ -108,7 +106,7 @@ def compute_len_branch_z(matrix, z, x):
 
     i = z+1
 
-    while i < Sz and matrix[i, x] > 0:
+    while i < matrix.shape[0] and matrix[i, x] > 0:
         res += 1
         i += 1
 
@@ -124,7 +122,6 @@ def p(matrix, z, x):
 
     Ax_v = Ax(matrix)
     Az_v = Az(matrix)
-    loaded = twoway(matrix)
 
     branches_x = compute_branches(matrix[:,x])
     branches_z = compute_branches(matrix[z])
@@ -146,7 +143,31 @@ def p(matrix, z, x):
     return result
 
 # return possible neighbors of z,x in matrix
-def get_neighbors(matrix, z, x):
+def get_4_neighbors(matrix, z, x):
+    neighbors = []
+
+    if z < 0 or x < 0 or z > matrix.shape[0] or x > matrix.shape[1]:
+        print "Invalid call to get_neighbors!. Shape:", matrix.shape, z, x
+        exit()
+
+
+    if z-1 > 0:
+        if x-1 > 0:
+            neighbors.append([z, x-1])
+
+        neighbors.append([z-1, x])
+
+        if x+1 < matrix.shape[1]:
+            neighbors.append([z, x+1])
+
+    if z+1 < matrix.shape[0]:
+        neighbors.append([z+1, x])
+
+
+    return neighbors
+
+# return possible neighbors of z,x in matrix
+def get_8_neighbors(matrix, z, x):
     neighbors = []
 
     if z < 0 or x < 0 or z > matrix.shape[0] or x > matrix.shape[1]:
@@ -181,7 +202,7 @@ def Pplus(matrix, p_matrix, z, x):
     alpha = 0.003
     beta = 0.1
 
-    neighbors_pos = get_neighbors(matrix, z, x)
+    neighbors_pos = get_8_neighbors(matrix, z, x)
     n = len(neighbors_pos)
 
     # pressure at current location
@@ -204,7 +225,7 @@ def generate_matrix(void_fraction, Sz, Sx):
 
     return data
 
-def simulate(loaded, steps):
+def simulate(loaded, steps, Sz, Sx):
     for t in range(steps):
 
         if t % 5 == 0:
@@ -247,26 +268,37 @@ def save_img(arr, filename):
     print "Saved", filename
 
 def main():
-    data = generate_matrix(void_fraction_start, Sz, Sx)
+    parser = argparse.ArgumentParser(description='Run bone simulation')
+    parser.add_argument("-s", dest="steps", type=int, required=True, nargs=1, help="Number of simulation steps")
+    parser.add_argument("-sz", dest="Sz", type=int, required=True, nargs=1, help="Size in z direction")
+    parser.add_argument("-sx", dest="Sx", type=int, required=True, nargs=1, help="Size in x direction")
+
+
+    
+    args = parser.parse_args()
+
+    str_id = str(args.steps[0])+'_'+str(args.Sz[0])+'_'+str(args.Sx[0])+'_'
+
+    data = generate_matrix(void_fraction_start, args.Sz[0], args.Sx[0])
+
 
     print "DATA: "
     print data
     print
 
     # run two way algorithm
-    loaded_orig = twoway(data)
+    loaded_orig = twoway(data,args.Sz[0], args.Sx[0])
     loaded = loaded_orig
 
-    save_img(loaded, "original.png")
+    save_img(loaded, 'bone_in'+str_id+'.png')
 
     print "Starting..."
-    #print loaded
 
-    final = simulate(loaded, steps)
+    final = simulate(loaded, args.steps[0], args.Sz[0], args.Sx[0])
 
     print "Finished"
 
-    save_img(final, "result_bone.png")
+    save_img(final, 'bone_out'+str_id+'.png')
 
 if __name__ == '__main__':
     main()
