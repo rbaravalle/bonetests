@@ -1,10 +1,16 @@
-#TWO WAY PAINTING ALGORITHM
+# Weinkammer 2004 Stochastic lattice model for bone remodeling and aging
 import numpy as np
 from num_branches import compute_branches
+import Image
 
-Sx = 10
-Sz = 10
-void_fraction_start = 0.9
+Sx = 40
+Sz = 40
+void_fraction_start = 0.95
+steps = 30
+pminus = 0.007
+k = 0.9
+Fz = 9 # MISSING
+a = 1 # MISSING
 
 def twoway(data):
 
@@ -49,8 +55,6 @@ def twoway(data):
 
     return loaded
 
-
-# Weinkammer 2004
 
 # Matrix loaded architectural information
 def Az(matrix):
@@ -117,10 +121,6 @@ def p(matrix, z, x):
     # no bone, no pressure
     if matrix[z,x] == 0:
         return 0
-
-    Fz = 9 # MISSING
-    k = 0.9 # paper
-    a = 1 # MISSING
 
     Ax_v = Ax(matrix)
     Az_v = Az(matrix)
@@ -204,6 +204,48 @@ def generate_matrix(void_fraction, Sz, Sx):
 
     return data
 
+def simulate(loaded, steps):
+    for t in range(steps):
+
+        if t % 5 == 0:
+            print t
+
+        P = np.zeros((Sz, Sx))
+
+        # compute pressures
+        for z in range(Sz):
+            for x in range(Sx):
+                P[z,x] = p(loaded, z, x)
+
+
+        # probabilities of new material
+        pp = np.zeros((Sz, Sx))
+
+        for z in range(Sz):
+            for x in range(Sx):
+                if P[z,x] > 0:
+                    pp[z,x] = Pplus(loaded, P, z, x)
+
+        # use probabilities to put or remove material
+        for z in range(Sz):
+            for x in range(Sx):
+                if pp[z,x] > np.random.random():
+                    loaded[z,x] = 1
+                
+                if pminus > np.random.random():
+                    loaded[z,x] = 0
+
+
+    return loaded
+        
+
+def save_img(arr, filename):
+    im = Image.fromarray(255*arr)
+    if im.mode != 'RGB':
+        im = im.convert('RGB')
+    im.save(filename)
+    print "Saved", filename
+
 def main():
     data = generate_matrix(void_fraction_start, Sz, Sx)
 
@@ -211,30 +253,20 @@ def main():
     print data
     print
 
-    loaded = twoway(data)
+    # run two way algorithm
+    loaded_orig = twoway(data)
+    loaded = loaded_orig
 
-    print "Loaded: "
-    print loaded
+    save_img(loaded, "original.png")
 
-    P = np.zeros((Sz, Sx))
+    print "Starting..."
+    #print loaded
 
-    for z in range(Sz):
-        for x in range(Sx):
-            P[z,x] = p(loaded, z, x)
+    final = simulate(loaded, steps)
 
-    print "p"
-    print P
+    print "Finished"
 
-    # new material
-    pp = np.zeros((Sz, Sx))
-
-    for z in range(Sz):
-        for x in range(Sx):
-            if P[z,x] > 0:
-                pp[z,x] = Pplus(loaded, P, z, x)
-
-    print "New material matrix"
-    print pp
+    save_img(final, "result_bone.png")
 
 if __name__ == '__main__':
     main()
