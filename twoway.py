@@ -150,15 +150,14 @@ def get_4_neighbors(matrix, z, x):
         print "Invalid call to get_neighbors!. Shape:", matrix.shape, z, x
         exit()
 
+    if x-1 > 0:
+        neighbors.append([z, x-1])
+
+    if x+1 < matrix.shape[1]:
+        neighbors.append([z, x+1])
 
     if z-1 > 0:
-        if x-1 > 0:
-            neighbors.append([z, x-1])
-
         neighbors.append([z-1, x])
-
-        if x+1 < matrix.shape[1]:
-            neighbors.append([z, x+1])
 
     if z+1 < matrix.shape[0]:
         neighbors.append([z+1, x])
@@ -202,7 +201,7 @@ def Pplus(matrix, p_matrix, z, x):
     alpha = 0.003
     beta = 0.1
 
-    neighbors_pos = get_8_neighbors(matrix, z, x)
+    neighbors_pos = get_4_neighbors(matrix, z, x)
     n = len(neighbors_pos)
 
     # pressure at current location
@@ -225,11 +224,11 @@ def generate_matrix(void_fraction, Sz, Sx):
 
     return data
 
-def simulate(loaded, steps, Sz, Sx):
+def simulate(loaded, steps, Sz, Sx, str_id):
     for t in range(steps):
 
         if t % 5 == 0:
-            print t
+            save_img(loaded, 'bone_out'+str_id+'_iteration_'+str(t)+'.png')
 
         P = np.zeros((Sz, Sx))
 
@@ -294,7 +293,7 @@ def main():
 
     print "Starting..."
 
-    final = simulate(loaded, args.steps[0], args.Sz[0], args.Sx[0])
+    final = simulate(loaded, args.steps[0], args.Sz[0], args.Sx[0], str_id)
 
     print "Finished"
 
