@@ -11,8 +11,12 @@ k = 0.9
 alpha = 0.003
 beta = 0.1
 activation_threshold = 0.9
-Fz = 90 # MISSING
 a = 1 # MISSING
+Fz = 90 # MISSING
+Lx = 90 # MISSING
+
+ps_c = 4.0 # MEAN PAPER
+pc = (Fz / Lx) * ps_c
 
 
 def create_dir_if_not_exists(directory):
@@ -209,17 +213,15 @@ def get_8_neighbors(matrix, z, x):
 def Pplus(matrix, p_matrix, z, x):
 
     neighbors_pos = get_4_neighbors(matrix, z, x)
+
     n = len(neighbors_pos)
 
-    # pressure at current location
-    pc = p_matrix[z,x]
-
-    sum_gi = 0
+    sum_gi = 0.0
     for i in neighbors_pos:
         # pressure at neighbor location
         pi = p_matrix[i[0],i[1]]
 
-        sum_gi += 0 if pi < pc else float(pi) / pc
+        sum_gi += 0.0 if pi < pc else float(pi) / pc
 
     return n * alpha + beta * sum_gi
 
