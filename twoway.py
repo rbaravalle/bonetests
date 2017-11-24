@@ -3,12 +3,21 @@ import numpy as np
 from num_branches import compute_branches
 import Image
 import argparse
+import os
 
 void_fraction_start = 0.95
 pminus = 0.007
 k = 0.9
-Fz = 9 # MISSING
+alpha = 0.003
+beta = 0.1
+activation_threshold = 0.9
+Fz = 90 # MISSING
 a = 1 # MISSING
+
+
+def create_dir_if_not_exists(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 def twoway(data, Sz, Sx):
 
@@ -198,8 +207,6 @@ def get_8_neighbors(matrix, z, x):
 
 # probability of forming new material at pos matrix[z,x]
 def Pplus(matrix, p_matrix, z, x):
-    alpha = 0.003
-    beta = 0.1
 
     neighbors_pos = get_4_neighbors(matrix, z, x)
     n = len(neighbors_pos)
@@ -224,11 +231,11 @@ def generate_matrix(void_fraction, Sz, Sx):
 
     return data
 
-def simulate(loaded, steps, Sz, Sx, str_id):
+def simulate(loaded, steps, Sz, Sx, str_id, out_dir):
     for t in range(steps):
 
         if t % 5 == 0:
-            save_img(loaded, 'bone_out'+str_id+'_iteration_'+str(t)+'.png')
+            save_img(loaded, out_dir+'/bone_out'+str_id+'_iteration_'+str(t)+'.png')
 
         P = np.zeros((Sz, Sx))
 
@@ -249,7 +256,7 @@ def simulate(loaded, steps, Sz, Sx, str_id):
         # use probabilities to put or remove material
         for z in range(Sz):
             for x in range(Sx):
-                if pp[z,x] > np.random.random():
+                if pp[z,x] > activation_threshold:
                     loaded[z,x] = 1
                 
                 if pminus > np.random.random():
@@ -289,15 +296,19 @@ def main():
     loaded_orig = twoway(data,args.Sz[0], args.Sx[0])
     loaded = loaded_orig
 
-    save_img(loaded, 'bone_in'+str_id+'.png')
+    out_dir = 'output'
+    create_dir_if_not_exists(out_dir)
+
+    save_img(loaded, out_dir+'/bone_in'+str_id+'.png')
 
     print "Starting..."
 
-    final = simulate(loaded, args.steps[0], args.Sz[0], args.Sx[0], str_id)
+    final = simulate(loaded, args.steps[0], args.Sz[0], args.Sx[0], str_id, out_dir)
 
     print "Finished"
 
-    save_img(final, 'bone_out'+str_id+'.png')
+
+    save_img(final, out_dir+'/bone_out'+str_id+'.png')
 
 if __name__ == '__main__':
     main()
