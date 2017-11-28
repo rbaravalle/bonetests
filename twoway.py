@@ -10,13 +10,12 @@ pminus = 0.007
 k = 0.9
 alpha = 0.003
 beta = 0.1
-activation_threshold = 0.9
-a = 1 # MISSING
-Fz = 90 # MISSING
-Lx = 90 # MISSING
 
-ps_c = 4.0 # MEAN PAPER
-pc = (Fz / Lx) * ps_c
+a = 1 # MISSING
+Fz = 30 # MISSING
+Lx = 0 # WILL BE DEFINED
+
+ps_c = 2.5 # MEAN PAPER
 
 
 def create_dir_if_not_exists(directory):
@@ -56,10 +55,6 @@ def twoway(data, Sz, Sx):
                 # CONNECTED
                 if data[z,x] == 1:
                     connected2[z,x] = 1
-
-    #print connected
-    #print ""
-    #print connected2
 
     loaded = np.logical_and((connected > 0), (connected2 > 0))
     loaded = 1.0 * loaded
@@ -210,7 +205,7 @@ def get_8_neighbors(matrix, z, x):
 
 
 # probability of forming new material at pos matrix[z,x]
-def Pplus(matrix, p_matrix, z, x):
+def Pplus(matrix, p_matrix, z, x, pc):
 
     neighbors_pos = get_4_neighbors(matrix, z, x)
 
@@ -233,7 +228,7 @@ def generate_matrix(void_fraction, Sz, Sx):
 
     return data
 
-def simulate(loaded, steps, Sz, Sx, str_id, out_dir):
+def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
     for t in range(steps):
 
         if t % 5 == 0:
@@ -253,12 +248,12 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir):
         for z in range(Sz):
             for x in range(Sx):
                 if P[z,x] > 0:
-                    pp[z,x] = Pplus(loaded, P, z, x)
+                    pp[z,x] = Pplus(loaded, P, z, x, pc)
 
         # use probabilities to put or remove material
         for z in range(Sz):
             for x in range(Sx):
-                if pp[z,x] > activation_threshold:
+                if pp[z,x] > np.random.random():
                     loaded[z,x] = 1
                 
                 if pminus > np.random.random():
@@ -298,14 +293,16 @@ def main():
     loaded_orig = twoway(data,args.Sz[0], args.Sx[0])
     loaded = loaded_orig
 
+    Lx = float(a * args.Sx[0])
+    pc = ps_c/(Fz/Lx)
+    print "PC:", pc
+
     out_dir = 'output'
     create_dir_if_not_exists(out_dir)
 
-    save_img(loaded, out_dir+'/bone_in'+str_id+'.png')
-
     print "Starting..."
 
-    final = simulate(loaded, args.steps[0], args.Sz[0], args.Sx[0], str_id, out_dir)
+    final = simulate(loaded, args.steps[0], args.Sz[0], args.Sx[0], str_id, out_dir, pc)
 
     print "Finished"
 
