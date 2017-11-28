@@ -51,7 +51,7 @@ def twoway(data, Sz, Sx):
         for x in range(Sx):
             if (x > 0 and connected2[z+1][x-1] == 1) \
             or connected2[z+1][x] == 1 \
-            or (x < Sz-1 and connected2[z+1][x+1] == 1):
+            or (x < Sx-1 and connected2[z+1][x+1] == 1):
                 # CONNECTED
                 if data[z,x] == 1:
                     connected2[z,x] = 1
@@ -250,14 +250,12 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                 if P[z,x] > 0:
                     pp[z,x] = Pplus(loaded, P, z, x, pc)
 
+
         # use probabilities to put or remove material
-        for z in range(Sz):
-            for x in range(Sx):
-                if pp[z,x] > np.random.random():
-                    loaded[z,x] = 1
-                
-                if pminus > np.random.random():
-                    loaded[z,x] = 0
+        loaded += 1*(pp > np.random.random((Sz, Sx)))
+        loaded -= 1*(pminus > np.random.random((Sz, Sx)))
+
+        loaded = twoway(loaded, Sz, Sx)
 
 
     return loaded
@@ -283,11 +281,6 @@ def main():
     str_id = str(args.steps[0])+'_'+str(args.Sz[0])+'_'+str(args.Sx[0])+'_'
 
     data = generate_matrix(void_fraction_start, args.Sz[0], args.Sx[0])
-
-
-    print "DATA: "
-    print data
-    print
 
     # run two way algorithm
     loaded_orig = twoway(data,args.Sz[0], args.Sx[0])
