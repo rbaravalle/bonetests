@@ -1,6 +1,6 @@
 # Weinkammer 2004 Stochastic lattice model for bone remodeling and aging
 import numpy as np
-from num_branches import compute_branches, compute_branches_np
+from scipy.ndimage.measurements import label
 import Image
 import argparse
 import os
@@ -17,6 +17,20 @@ Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # MEAN PAPER
 
+
+
+def compute_amount_branches(array):
+    return label(array)[1]
+
+def compute_branches(array):
+    branches, amount = label(array)
+    
+    lens = np.zeros(amount)
+
+    for i in range(1,amount+1):
+        lens[i-1] = len(np.where(branches == i)[0])
+
+    return lens
 
 def create_dir_if_not_exists(directory):
     if not os.path.exists(directory):
@@ -132,12 +146,9 @@ def p(matrix, z, x):
     Ax_v = Ax(matrix)
     Az_v = Az(matrix)
 
-    branches_x = compute_branches(matrix[:,x])
-    #branches_z = compute_branches(matrix[z])
-    Mz = compute_branches_np(matrix[z])
+    Mx = compute_amount_branches(matrix[:,x])
+    Mz = compute_amount_branches(matrix[z])
 
-    Mx = len(branches_x)
-    #Mz = len(branches_z)
     Njx = compute_len_branch_x(matrix, z, x)
     Njz = compute_len_branch_z(matrix, z, x)
 
