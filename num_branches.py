@@ -1,7 +1,10 @@
 import numpy as np
+from scipy.ndimage.measurements import label
 
-#array = np.random.randint(2, size=(10,1))
 
+def compute_branches_np(array):
+    #return len(np.where(label(array,np.ones(3))[0]==3)[0])
+    return label(array,np.ones(3))[1]
 
 # given an array, compute the number of branches
 # i.e. amount of connected components

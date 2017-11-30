@@ -1,6 +1,6 @@
 # Weinkammer 2004 Stochastic lattice model for bone remodeling and aging
 import numpy as np
-from num_branches import compute_branches
+from num_branches import compute_branches, compute_branches_np
 import Image
 import argparse
 import os
@@ -88,6 +88,7 @@ def Ax(matrix):
 
     return summ
 
+
 def compute_len_branch_x(matrix, z, x):
     res = 1 # this position
     i = x-1
@@ -132,10 +133,11 @@ def p(matrix, z, x):
     Az_v = Az(matrix)
 
     branches_x = compute_branches(matrix[:,x])
-    branches_z = compute_branches(matrix[z])
+    #branches_z = compute_branches(matrix[z])
+    Mz = compute_branches_np(matrix[z])
 
     Mx = len(branches_x)
-    Mz = len(branches_z)
+    #Mz = len(branches_z)
     Njx = compute_len_branch_x(matrix, z, x)
     Njz = compute_len_branch_z(matrix, z, x)
 
@@ -252,8 +254,10 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
 
         # use probabilities to put or remove material
-        loaded += 1*(pp > np.random.random((Sz, Sx)))
+        loaded = 1*np.logical_or(loaded, (pp > np.random.random((Sz, Sx))))
         loaded -= 1*(pminus > np.random.random((Sz, Sx)))
+        loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
+        loaded = loaded*1
 
         loaded = twoway(loaded, Sz, Sx)
 
