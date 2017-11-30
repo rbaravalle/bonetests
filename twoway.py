@@ -70,8 +70,7 @@ def twoway(data, Sz, Sx):
                 if data[z,x] == 1:
                     connected2[z,x] = 1
 
-    loaded = np.logical_and((connected > 0), (connected2 > 0))
-    loaded = 1.0 * loaded
+    loaded = 1.0*np.logical_and((connected > 0), (connected2 > 0))
 
     return loaded
 
