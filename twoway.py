@@ -10,9 +10,9 @@ pminus = 0.007
 k = 0.9
 alpha = 0.003
 beta = 0.1
+a = 30.0
 
-a = 1  # MISSING
-Fz = 30 # MISSING
+Fz = 400 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # MEAN PAPER
@@ -84,7 +84,7 @@ def Az(matrix):
         Mz = len(branches)
         if Mz > 0:
             factor = 1.0 / Mz * Mz
-            summ += factor * np.sum(1.0 / branches)
+            summ += factor * np.sum(1.0 / (branches/a))
 
     return summ
 
@@ -97,7 +97,7 @@ def Ax(matrix):
         Mx = len(branches)
         if Mx > 0:
             factor = 1.0 / Mx * Mx
-            summ += factor * np.sum(1.0 / branches)
+            summ += factor * np.sum(1.0 / (branches/a))
 
     return summ
 
@@ -143,8 +143,8 @@ def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
         return 0
 
 
-    Njx = compute_len_branch_x(matrix, z, x)
-    Njz = compute_len_branch_z(matrix, z, x)
+    Njx = compute_len_branch_x(matrix, z, x) / a
+    Njz = compute_len_branch_z(matrix, z, x) / a
 
     factor = Fz / (Ax_v + k*k*Az_v)
 
@@ -214,7 +214,7 @@ def get_8_neighbors(matrix, z, x):
 # probability of forming new material at pos matrix[z,x]
 def Pplus(matrix, p_matrix, z, x, pc):
 
-    neighbors_pos = get_4_neighbors(matrix, z, x)
+    neighbors_pos = get_8_neighbors(matrix, z, x)
 
     n = len(neighbors_pos)
 
@@ -273,7 +273,6 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         loaded = 1*np.logical_or(loaded, (pp > np.random.random((Sz, Sx))))
         loaded -= 1*(pminus > np.random.random((Sz, Sx)))
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
-        #loaded = loaded*1
 
         loaded = twoway(loaded, Sz, Sx)
 
