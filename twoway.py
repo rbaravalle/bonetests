@@ -11,7 +11,7 @@ k = 0.9
 alpha = 0.003
 beta = 0.1
 
-a = 1 # MISSING
+a = 1  # MISSING
 Fz = 30 # MISSING
 Lx = 0 # WILL BE DEFINED
 
@@ -136,17 +136,12 @@ def compute_len_branch_z(matrix, z, x):
 
 # maximal pressure p at a given position (in matrix matrix)
 # (mechanical stimulus the bone cells respond to)
-def p(matrix, z, x):
+def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
 
     # no bone, no pressure
     if matrix[z,x] == 0:
         return 0
 
-    Ax_v = Ax(matrix)
-    Az_v = Az(matrix)
-
-    Mx = compute_amount_branches(matrix[:,x])
-    Mz = compute_amount_branches(matrix[z])
 
     Njx = compute_len_branch_x(matrix, z, x)
     Njz = compute_len_branch_z(matrix, z, x)
@@ -248,10 +243,21 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
         P = np.zeros((Sz, Sx))
 
+        Mz = np.zeros(Sz)
+        Mx = np.zeros(Sx)
+        for z in range(Sz):
+            Mz[z] = compute_amount_branches(loaded[z])
+        for x in range(Sx):
+            Mx[x] = compute_amount_branches(loaded[:,x])
+
+
+        Ax_v = Ax(loaded)
+        Az_v = Az(loaded)
+
         # compute pressures
         for z in range(Sz):
             for x in range(Sx):
-                P[z,x] = p(loaded, z, x)
+                P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
 
 
         # probabilities of new material
@@ -267,7 +273,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         loaded = 1*np.logical_or(loaded, (pp > np.random.random((Sz, Sx))))
         loaded -= 1*(pminus > np.random.random((Sz, Sx)))
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
-        loaded = loaded*1
+        #loaded = loaded*1
 
         loaded = twoway(loaded, Sz, Sx)
 
