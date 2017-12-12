@@ -36,44 +36,36 @@ def create_dir_if_not_exists(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def twoway(data, Sz, Sx):
+
+def paint(array, data, op, from_v, to_v, step_v, Sx):
+  
+    array[from_v] = data[from_v]
+    for z in range(from_v, to_v, step_v):
+        for x in range(Sx):
+            if array[z][x] and data[op(z,1)][x]:
+                array[op(z,1)][x] = 1
+
+                # additionally, immediate neighbors
+                if x+1 < Sx and data[op(z,1)][x+1]:
+                    array[op(z,1)][x+1] = 1
+
+                if x-1 > 0 and data[op(z,1)][x-1]:
+                    array[op(z,1)][x-1] = 1
+    return array
+
+def twoway_new(data, Sz, Sx):
 
     connected = np.zeros((Sz,Sx))
     connected2 = np.zeros((Sz,Sx))
 
+    # bottom -> top
+    paint(connected, data, np.add, 0, Sz-1, 1, Sx)
 
-    # mark the first row as connected
-
-    # up -> down
-    connected[0] = data[0]
-
-
-    for z in range(1,Sz):
-        for x in range(Sx):
-            if (x > 0 and connected[z-1][x-1] == 1) \
-            or connected[z-1][x] == 1  \
-            or (x < Sx-1 and connected[z-1][x+1] == 1):
-                # CONNECTED
-                if data[z,x] ==1:
-                    connected[z,x] = 1
-
-    # down -> up
-    connected2[Sz-1] = data[Sz-1]
-
-
-    for z in range(Sz-2,-1,-1):
-        for x in range(Sx):
-            if (x > 0 and connected2[z+1][x-1] == 1) \
-            or connected2[z+1][x] == 1 \
-            or (x < Sx-1 and connected2[z+1][x+1] == 1):
-                # CONNECTED
-                if data[z,x] == 1:
-                    connected2[z,x] = 1
+    paint(connected2, data, np.subtract, Sz-1, -1, -1, Sx)
 
     loaded = 1.0*np.logical_and((connected > 0), (connected2 > 0))
 
     return loaded
-
 
 # Matrix loaded architectural information
 def Az(matrix):
@@ -274,7 +266,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         loaded -= 1*(pminus > np.random.random((Sz, Sx)))
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
 
-        loaded = twoway(loaded, Sz, Sx)
+        loaded = twoway_new(loaded, Sz, Sx)
 
 
     return loaded
@@ -302,7 +294,7 @@ def main():
     data = generate_matrix(void_fraction_start, args.Sz[0], args.Sx[0])
 
     # run two way algorithm
-    loaded_orig = twoway(data,args.Sz[0], args.Sx[0])
+    loaded_orig = twoway_new(data,args.Sz[0], args.Sx[0])
     loaded = loaded_orig
 
     Lx = float(a * args.Sx[0])
