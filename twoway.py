@@ -12,7 +12,7 @@ alpha = 0.003
 beta = 0.1
 a = 30.0
 
-Fz = 400 # MISSING
+Fz = 900 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # MEAN PAPER
@@ -37,35 +37,30 @@ def create_dir_if_not_exists(directory):
         os.makedirs(directory)
 
 
-def paint(array, data, op, from_v, to_v, step_v, Sx):
-  
+def paint(data, op, from_v, to_v, step_v):
+    array = np.zeros(data.shape)
     array[from_v] = data[from_v]
     for z in range(from_v, to_v, step_v):
-        for x in range(Sx):
+        for x in range(data.shape[1]):
             if array[z][x] and data[op(z,1)][x]:
                 array[op(z,1)][x] = 1
 
                 # additionally, immediate neighbors
-                if x+1 < Sx and data[op(z,1)][x+1]:
+                if x+1 < data.shape[1] and data[op(z,1)][x+1]:
                     array[op(z,1)][x+1] = 1
 
                 if x-1 > 0 and data[op(z,1)][x-1]:
                     array[op(z,1)][x-1] = 1
     return array
 
-def twoway_new(data, Sz, Sx):
-
-    connected = np.zeros((Sz,Sx))
-    connected2 = np.zeros((Sz,Sx))
+def twoway_new(data):
 
     # bottom -> top
-    paint(connected, data, np.add, 0, Sz-1, 1, Sx)
+    connected = paint(data, np.add, 0, data.shape[0]-1, 1)
 
-    paint(connected2, data, np.subtract, Sz-1, -1, -1, Sx)
+    connected2 = paint(data, np.subtract, data.shape[0]-1, -1, -1)
 
-    loaded = 1.0*np.logical_and((connected > 0), (connected2 > 0))
-
-    return loaded
+    return 1.0*np.logical_and((connected > 0), (connected2 > 0))
 
 # Matrix loaded architectural information
 def Az(matrix):
@@ -206,7 +201,7 @@ def get_8_neighbors(matrix, z, x):
 # probability of forming new material at pos matrix[z,x]
 def Pplus(matrix, p_matrix, z, x, pc):
 
-    neighbors_pos = get_8_neighbors(matrix, z, x)
+    neighbors_pos = get_4_neighbors(matrix, z, x)
 
     n = len(neighbors_pos)
 
@@ -266,7 +261,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         loaded -= 1*(pminus > np.random.random((Sz, Sx)))
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
 
-        loaded = twoway_new(loaded, Sz, Sx)
+        loaded = twoway_new(loaded)
 
 
     return loaded
@@ -294,8 +289,7 @@ def main():
     data = generate_matrix(void_fraction_start, args.Sz[0], args.Sx[0])
 
     # run two way algorithm
-    loaded_orig = twoway_new(data,args.Sz[0], args.Sx[0])
-    loaded = loaded_orig
+    loaded = twoway_new(data)
 
     Lx = float(a * args.Sx[0])
     pc = ps_c/(Fz/Lx)
