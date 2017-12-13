@@ -58,9 +58,9 @@ def twoway_new(data):
     # bottom -> top
     connected = paint(data, np.add, 0, data.shape[0]-1, 1)
 
-    connected2 = paint(data, np.subtract, data.shape[0]-1, -1, -1)
+    connected2 = paint(connected, np.subtract, data.shape[0]-1, -1, -1)
 
-    return 1.0*np.logical_and((connected > 0), (connected2 > 0))
+    return connected2
 
 # Matrix loaded architectural information
 def Az(matrix):
@@ -133,6 +133,8 @@ def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
     Njx = compute_len_branch_x(matrix, z, x) / a
     Njz = compute_len_branch_z(matrix, z, x) / a
 
+
+
     factor = Fz / (Ax_v + k*k*Az_v)
 
     v1 = k * Az_v / (Mx * a * Njx)
@@ -140,7 +142,7 @@ def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
 
     maxim = max(v1, v2)
 
-    result = round(factor * maxim, 2)
+    result = factor * maxim
 
     return result
 
@@ -215,14 +217,19 @@ def Pplus(matrix, p_matrix, z, x, pc):
     return n * alpha + beta * sum_gi
 
 
+def random_values(Sz, Sx):
+    r = np.random.random((Sz,Sx))
+    return r 
+
 # generate matrix with given void fraction
 def generate_matrix(void_fraction, Sz, Sx):
     
-    data = (np.random.rand(Sz,Sx) > 1 - void_fraction).astype(np.float32)
+    data = (random_values(Sz,Sx) > 1.0 - void_fraction).astype(np.float32)
 
     return data
 
 def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
+
     for t in range(steps):
 
         if t % 5 == 0:
@@ -246,6 +253,8 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
             for x in range(Sx):
                 P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
 
+        print P
+
 
         # probabilities of new material
         pp = np.zeros((Sz, Sx))
@@ -257,8 +266,8 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
 
         # use probabilities to put or remove material
-        loaded = 1*np.logical_or(loaded, (pp > np.random.random((Sz, Sx))))
-        loaded -= 1*(pminus > np.random.random((Sz, Sx)))
+        loaded = 1*np.logical_or(loaded, (pp > random_values(Sz, Sx)))
+        loaded -= 1*(pminus > random_values(Sz, Sx))
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
 
         loaded = twoway_new(loaded)
@@ -288,15 +297,21 @@ def main():
 
     data = generate_matrix(void_fraction_start, args.Sz[0], args.Sx[0])
 
+
+    out_dir = 'output'
+    create_dir_if_not_exists(out_dir)
+    save_img(data, out_dir+"/original.png")
+
     # run two way algorithm
     loaded = twoway_new(data)
+
+    save_img(loaded, out_dir+"/twoway.png")
+
 
     Lx = float(a * args.Sx[0])
     pc = ps_c/(Fz/Lx)
     print "PC:", pc
 
-    out_dir = 'output'
-    create_dir_if_not_exists(out_dir)
 
     print "Starting..."
 
