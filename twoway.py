@@ -10,9 +10,10 @@ pminus = 0.007
 k = 0.9
 alpha = 0.003
 beta = 0.1
-a = 30.0
+a = 1.0
+pad = 5
 
-Fz = 900 # MISSING
+Fz = 400 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # MEAN PAPER
@@ -45,12 +46,16 @@ def paint(data, op, from_v, to_v, step_v):
             if array[z][x] and data[op(z,1)][x]:
                 array[op(z,1)][x] = 1
 
-                # additionally, immediate neighbors
-                if x+1 < data.shape[1] and data[op(z,1)][x+1]:
-                    array[op(z,1)][x+1] = 1
-
-                if x-1 > 0 and data[op(z,1)][x-1]:
-                    array[op(z,1)][x-1] = 1
+                # additionally, neighbors
+                i = 1
+                while x+i < data.shape[1] and data[op(z,1)][x+i]:
+                    array[op(z,1)][x+i] = 1
+                    i+=1
+                    
+                i = 1
+                while x-i > 0 and data[op(z,1)][x-i]:
+                    array[op(z,1)][x-i] = 1
+                    i+=1
     return array
 
 def twoway_new(data):
@@ -223,8 +228,8 @@ def random_values(Sz, Sx):
 
 # generate matrix with given void fraction
 def generate_matrix(void_fraction, Sz, Sx):
-    
-    data = (random_values(Sz,Sx) > 1.0 - void_fraction).astype(np.float32)
+    data = np.ones((Sz, Sx)).astype(np.float32)
+    data[pad:Sz-pad, pad:Sx-pad] = (random_values(Sz-2*pad,Sx-2*pad) > 1.0 - void_fraction).astype(np.float32)
 
     return data
 
@@ -232,7 +237,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
     for t in range(steps):
 
-        if t % 5 == 0:
+        if t % 2 == 0:
             save_img(loaded, out_dir+'/bone_out'+str_id+'_iteration_'+str(t)+'.png')
 
         P = np.zeros((Sz, Sx))
@@ -265,9 +270,11 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                     pp[z,x] = Pplus(loaded, P, z, x, pc)
 
 
+        pminus_m = np.ones((Sz, Sx))
+        pminus_m[pad:Sz-pad, pad:Sx-pad] = random_values(Sz-2*pad, Sx-2*pad)
         # use probabilities to put or remove material
         loaded = 1*np.logical_or(loaded, (pp > random_values(Sz, Sx)))
-        loaded -= 1*(pminus > random_values(Sz, Sx))
+        loaded -= 1*(pminus > pminus_m)
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
 
         loaded = twoway_new(loaded)
