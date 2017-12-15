@@ -12,8 +12,9 @@ alpha = 0.003
 beta = 0.1
 a = 1.0
 pad = 5
+min_void_fraction = 0.5
 
-Fz = 400 # MISSING
+Fz = 200 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # MEAN PAPER
@@ -130,15 +131,15 @@ def compute_len_branch_z(matrix, z, x):
 # (mechanical stimulus the bone cells respond to)
 def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
 
-    # no bone, no pressure
-    #if matrix[z,x] == 0:
-    #    return 0
+    if Mx == 0 or Mz == 0:
+        return 0
 
 
     Njx = compute_len_branch_x(matrix, z, x) / a
     Njz = compute_len_branch_z(matrix, z, x) / a
 
-
+    if Njx == 0 or Njz == 0 or Az_v == 0 or Ax_v == 0:
+        return 0
 
     factor = Fz / (Ax_v + k*k*Az_v)
 
@@ -233,12 +234,23 @@ def generate_matrix(void_fraction, Sz, Sx):
 
     return data
 
+
+def compute_void_fraction(loaded):
+    amount = loaded.shape[0]*loaded.shape[1]
+    summ = np.sum(loaded)
+    return summ / amount
+
 def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
     for t in range(steps):
 
         if t % 2 == 0:
             save_img(loaded, out_dir+'/bone_out'+str_id+'_iteration_'+str(t)+'.png')
+            vf = compute_void_fraction(loaded)
+            print vf
+            if vf < min_void_fraction:
+                print "Wrong simulation"
+                exit()
 
         P = np.zeros((Sz, Sx))
 
