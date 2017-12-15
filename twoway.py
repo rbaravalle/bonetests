@@ -48,12 +48,12 @@ def paint(data, op, from_v, to_v, step_v):
 
                 # additionally, neighbors
                 i = 1
-                while x+i < data.shape[1] and data[op(z,1)][x+i]:
+                if x+i < data.shape[1] and data[op(z,1)][x+i]:
                     array[op(z,1)][x+i] = 1
                     i+=1
                     
                 i = 1
-                while x-i > 0 and data[op(z,1)][x-i]:
+                if x-i > 0 and data[op(z,1)][x-i]:
                     array[op(z,1)][x-i] = 1
                     i+=1
     return array
@@ -131,8 +131,8 @@ def compute_len_branch_z(matrix, z, x):
 def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
 
     # no bone, no pressure
-    if matrix[z,x] == 0:
-        return 0
+    #if matrix[z,x] == 0:
+    #    return 0
 
 
     Njx = compute_len_branch_x(matrix, z, x) / a
@@ -258,7 +258,6 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
             for x in range(Sx):
                 P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
 
-        print P
 
 
         # probabilities of new material
@@ -270,10 +269,12 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                     pp[z,x] = Pplus(loaded, P, z, x, pc)
 
 
+
+
         pminus_m = np.ones((Sz, Sx))
         pminus_m[pad:Sz-pad, pad:Sx-pad] = random_values(Sz-2*pad, Sx-2*pad)
         # use probabilities to put or remove material
-        loaded = 1*np.logical_or(loaded, (pp > random_values(Sz, Sx)))
+        loaded = 1.0*np.logical_or(loaded, (pp > random_values(Sz, Sx)))
         loaded -= 1*(pminus > pminus_m)
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
 
