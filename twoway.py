@@ -10,11 +10,11 @@ pminus = 0.007
 k = 0.9
 alpha = 0.003
 beta = 0.1
-a = 30.0
+a = 1.0
 pad = 5
-min_void_fraction = 0.5
+min_void_fraction = 0.4
 
-Fz = 120 # MISSING
+Fz = 30.0 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # MEAN PAPER
@@ -290,6 +290,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
             for x in range(Sx):
                 P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
 
+        print np.max(P[21:, 21:])
 
         # probabilities of new material
         pp = np.zeros((Sz, Sx))
@@ -349,7 +350,7 @@ def main():
 
 
     Lx = float(a * args.Sx[0])
-    pc = ps_c/(Fz/Lx)
+    pc = ps_c*Fz/Lx
     print "PC:", pc
 
 
