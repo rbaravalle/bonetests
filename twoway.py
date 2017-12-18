@@ -10,11 +10,11 @@ pminus = 0.007
 k = 0.9
 alpha = 0.003
 beta = 0.1
-a = 1.0
+a = 30.0
 pad = 5
 min_void_fraction = 0.5
 
-Fz = 200 # MISSING
+Fz = 120 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # MEAN PAPER
@@ -39,6 +39,26 @@ def create_dir_if_not_exists(directory):
         os.makedirs(directory)
 
 
+def paint_x(data, op, from_v, to_v, step_v):
+    array = np.zeros(data.shape)
+    array[:,from_v] = data[:,from_v]
+    for x in range(from_v, to_v, step_v):
+        for z in range(data.shape[0]):   
+            if array[z][x] and data[z][op(x,1)]:
+                array[z][op(x,1)] = 1
+
+                # additionally, neighbors
+                i = 1
+                while z+i < data.shape[0] and data[z+i][op(x,1)]:
+                    array[z+i][op(x,1)] = 1
+                    i+=1
+                    
+                i = 1
+                while z-i > 0 and data[z-i][op(x,1)]:
+                    array[z-i][op(x,1)] = 1
+                    i+=1
+    return array
+
 def paint(data, op, from_v, to_v, step_v):
     array = np.zeros(data.shape)
     array[from_v] = data[from_v]
@@ -49,12 +69,12 @@ def paint(data, op, from_v, to_v, step_v):
 
                 # additionally, neighbors
                 i = 1
-                if x+i < data.shape[1] and data[op(z,1)][x+i]:
+                while x+i < data.shape[1] and data[op(z,1)][x+i]:
                     array[op(z,1)][x+i] = 1
                     i+=1
                     
                 i = 1
-                if x-i > 0 and data[op(z,1)][x-i]:
+                while x-i > 0 and data[op(z,1)][x-i]:
                     array[op(z,1)][x-i] = 1
                     i+=1
     return array
@@ -62,9 +82,9 @@ def paint(data, op, from_v, to_v, step_v):
 def twoway_new(data):
 
     # bottom -> top
-    connected = paint(data, np.add, 0, data.shape[0]-1, 1)
+    connected = paint_x(data, np.add, 0, data.shape[0]-1, 1)
 
-    connected2 = paint(connected, np.subtract, data.shape[0]-1, -1, -1)
+    connected2 = paint_x(connected, np.subtract, data.shape[0]-1, -1, -1)
 
     return connected2
 
@@ -77,7 +97,7 @@ def Az(matrix):
         Mz = len(branches)
         if Mz > 0:
             factor = 1.0 / Mz * Mz
-            summ += factor * np.sum(1.0 / (branches/a))
+            summ += factor * np.sum(1.0 / branches)
 
     return summ
 
@@ -90,7 +110,7 @@ def Ax(matrix):
         Mx = len(branches)
         if Mx > 0:
             factor = 1.0 / Mx * Mx
-            summ += factor * np.sum(1.0 / (branches/a))
+            summ += factor * np.sum(1.0 / branches)
 
     return summ
 
@@ -135,8 +155,8 @@ def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
         return 0
 
 
-    Njx = compute_len_branch_x(matrix, z, x) / a
-    Njz = compute_len_branch_z(matrix, z, x) / a
+    Njx = compute_len_branch_x(matrix, z, x)
+    Njz = compute_len_branch_z(matrix, z, x)
 
     if Njx == 0 or Njz == 0 or Az_v == 0 or Ax_v == 0:
         return 0
@@ -271,7 +291,6 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                 P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
 
 
-
         # probabilities of new material
         pp = np.zeros((Sz, Sx))
 
@@ -286,9 +305,10 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         pminus_m = np.ones((Sz, Sx))
         pminus_m[pad:Sz-pad, pad:Sx-pad] = random_values(Sz-2*pad, Sx-2*pad)
         # use probabilities to put or remove material
-        loaded = 1.0*np.logical_or(loaded, (pp > random_values(Sz, Sx)))
-        loaded -= 1*(pminus > pminus_m)
+        loaded -= 1.0*(pminus > pminus_m)
         loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
+        loaded = 1.0*np.logical_or(loaded, (pp > random_values(Sz, Sx)))
+
 
         loaded = twoway_new(loaded)
 
