@@ -10,14 +10,14 @@ pminus = 0.007
 k = 0.9
 alpha = 0.003
 beta = 0.1
-a = 1.0
+a = 30.0
 pad = 5
 min_void_fraction = 0.4
 
-Fz = 30.0 # MISSING
+Fz = 2000.0 # MISSING
 Lx = 0 # WILL BE DEFINED
 
-ps_c = 2.5 # MEAN PAPER
+ps_c = 2.5 # FIG. 1 PAPER
 
 
 
@@ -260,11 +260,23 @@ def compute_void_fraction(loaded):
     summ = np.sum(loaded)
     return summ / amount
 
+def get_surface(loaded):
+    surface = np.zeros(loaded.shape)
+    for i in range(loaded.shape[0]):
+        for j in range(loaded.shape[1]):
+            neighs = get_4_neighbors(loaded,i,j)
+            for n in neighs:
+                if loaded[n[0],n[1]] == 0 and loaded[i,j]:
+                    surface[i,j]=1
+                    break
+
+    return surface
+
 def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
     for t in range(steps):
 
-        if t % 2 == 0:
+        if t % 20 == 0:
             save_img(loaded, out_dir+'/bone_out'+str_id+'_iteration_'+str(t)+'.png')
             vf = compute_void_fraction(loaded)
             print vf
@@ -290,8 +302,6 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
             for x in range(Sx):
                 P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
 
-        print np.max(P[21:, 21:])
-
         # probabilities of new material
         pp = np.zeros((Sz, Sx))
 
@@ -300,17 +310,29 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                 if P[z,x] > 0:
                     pp[z,x] = Pplus(loaded, P, z, x, pc)
 
+        surface = get_surface(loaded)
+        save_img(surface, 'surface.png')
+        # define where to add material
+        added = pp > random_values(Sz, Sx)
+        added = np.logical_and(added , surface > 0)
+        save_img(1.0*added, 'added.png')
+        # compute which cells will change (given added)
+        changed = np.logical_and(added, np.logical_not(loaded))
+        # add to the new matrix
+        loaded = np.logical_or(loaded, added)
 
-
-
+        # define where to remove material
         pminus_m = np.ones((Sz, Sx))
         pminus_m[pad:Sz-pad, pad:Sx-pad] = random_values(Sz-2*pad, Sx-2*pad)
-        # use probabilities to put or remove material
-        loaded -= 1.0*(pminus > pminus_m)
-        loaded = np.maximum(loaded, np.zeros((Sz, Sx)))
-        loaded = 1.0*np.logical_or(loaded, (pp > random_values(Sz, Sx)))
+        #pminus_m = random_values(Sz, Sx)
+ 
+
+        # remove material where it has not been added
+        pm = np.logical_and(surface>0,np.logical_and((pminus > pminus_m), np.logical_not(changed)))
+        loaded = 1.0*np.logical_and(loaded, np.logical_not(pm))
 
 
+        # keep only sites that belongs to the structure
         loaded = twoway_new(loaded)
 
 
@@ -345,9 +367,6 @@ def main():
 
     # run two way algorithm
     loaded = twoway_new(data)
-
-    save_img(loaded, out_dir+"/twoway.png")
-
 
     Lx = float(a * args.Sx[0])
     pc = ps_c*Fz/Lx
