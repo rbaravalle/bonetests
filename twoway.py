@@ -316,8 +316,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         added = pp > random_values(Sz, Sx)
         added = np.logical_and(added , surface > 0)
         save_img(1.0*added, 'added.png')
-        # compute which cells will change (given added)
-        changed = np.logical_and(added, np.logical_not(loaded))
+
         # add to the new matrix
         loaded = np.logical_or(loaded, added)
 
@@ -328,8 +327,10 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
  
 
         # remove material where it has not been added
-        pm = np.logical_and(surface>0,np.logical_and((pminus > pminus_m), np.logical_not(changed)))
-        loaded = 1.0*np.logical_and(loaded, np.logical_not(pm))
+        pm = np.logical_and((pminus > pminus_m), np.logical_not(added))
+        remove = np.logical_and(surface>0, pm)
+        save_img(1.0*remove, "remove.png")
+        loaded = 1.0*np.logical_and(loaded, np.logical_not(remove))
 
 
         # keep only sites that belongs to the structure
