@@ -48,15 +48,18 @@ def paint_x(data, op, from_v, to_v, step_v):
                 array[z][op(x,1)] = 1
 
                 # additionally, neighbors
-                i = 1
-                while z+i < data.shape[0] and data[z+i][op(x,1)]:
-                    array[z+i][op(x,1)] = 1
-                    i+=1
+                if False and x % 2==0: # 45/2 degrees force
+                    i = 1
+                    if z+i < data.shape[0] and data[z+i][op(x,1)]:
+                        array[z+i][op(x,1)] = 1
+                        i+=1
                     
-                i = 1
-                while z-i > 0 and data[z-i][op(x,1)]:
-                    array[z-i][op(x,1)] = 1
-                    i+=1
+                    i = 1
+
+                    if z-i > 0 and data[z-i][op(x,1)]:
+                        array[z-i][op(x,1)] = 1
+                        i+=1
+
     return array
 
 def paint(data, op, from_v, to_v, step_v):
@@ -67,24 +70,30 @@ def paint(data, op, from_v, to_v, step_v):
             if array[z][x] and data[op(z,1)][x]:
                 array[op(z,1)][x] = 1
 
+
                 # additionally, neighbors
-                i = 1
-                while x+i < data.shape[1] and data[op(z,1)][x+i]:
-                    array[op(z,1)][x+i] = 1
-                    i+=1
+                if z % 2==0: # 45/2 degrees force
+   
+                    i = 1
+                    if x+i < data.shape[1] and data[op(z,1)][x+i]:
+                        array[op(z,1)][x+i] = 1
+                        i+=1
                     
-                i = 1
-                while x-i > 0 and data[op(z,1)][x-i]:
-                    array[op(z,1)][x-i] = 1
-                    i+=1
+                    i = 1
+                    if x-i > 0 and data[op(z,1)][x-i]:
+                        array[op(z,1)][x-i] = 1
+                        i+=1
     return array
 
 def twoway_new(data):
 
     # bottom -> top
-    connected = paint_x(data, np.add, 0, data.shape[0]-1, 1)
+    connected = paint(data, np.add, 0, data.shape[0]-1, 1)
+    save_img(connected,"connected1.png")
 
-    connected2 = paint_x(connected, np.subtract, data.shape[0]-1, -1, -1)
+
+    connected2 = paint(connected, np.subtract, data.shape[0]-1, -1, -1)
+    save_img(connected2,"connected2.png")
 
     return connected2
 
@@ -118,6 +127,8 @@ def Ax(matrix):
 def compute_len_branch_x(matrix, z, x):
     res = 1 # this position
     i = x-1
+
+    if matrix[z,x] == 0: return 0
     
     while i > 0 and matrix[z,i] > 0:
         res += 1
@@ -135,6 +146,7 @@ def compute_len_branch_z(matrix, z, x):
     res = 1 # this position
     i = z-1
     
+    if matrix[z,x] == 0: return 0
     while i > 0 and matrix[i, x] > 0:
         res += 1
         i -= 1
@@ -154,6 +166,7 @@ def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
     if Mx == 0 or Mz == 0:
         return 0
 
+    #if matrix[z,x] == 0: return 0
 
     Njx = compute_len_branch_x(matrix, z, x)
     Njz = compute_len_branch_z(matrix, z, x)
@@ -260,6 +273,7 @@ def compute_void_fraction(loaded):
     summ = np.sum(loaded)
     return summ / amount
 
+# places where to remove material
 def get_surface(loaded):
     surface = np.zeros(loaded.shape)
     for i in range(loaded.shape[0]):
@@ -271,6 +285,19 @@ def get_surface(loaded):
                     break
 
     return surface
+
+# places where to add material
+def get_neigh_surface(loaded):
+    neigh_surface = np.zeros(loaded.shape)
+    for i in range(loaded.shape[0]):
+        for j in range(loaded.shape[1]):
+            neighs = get_4_neighbors(loaded,i,j)
+            for n in neighs:
+                if loaded[n[0],n[1]] == 1 and loaded[i,j] == 0:
+                    neigh_surface[i,j]=1
+                    break
+
+    return neigh_surface
 
 def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
@@ -284,6 +311,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                 print "Wrong simulation"
                 exit()
 
+        #exit()
         P = np.zeros((Sz, Sx))
 
         Mz = np.zeros(Sz)
@@ -311,11 +339,16 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                     pp[z,x] = Pplus(loaded, P, z, x, pc)
 
         surface = get_surface(loaded)
+        neigh_surface = get_neigh_surface(loaded)
         save_img(surface, 'surface.png')
+        #save_img(neigh_surface, 'neigh_surface.png')
         # define where to add material
         added = pp > random_values(Sz, Sx)
-        added = np.logical_and(added , surface > 0)
+        #added = np.logical_and(added , neigh_surface > 0)
         save_img(1.0*added, 'added.png')
+
+        formation = 255*pp/np.max(pp)
+        save_img(formation.astype(np.uint8), "formation.png")
 
         # add to the new matrix
         loaded = np.logical_or(loaded, added)
@@ -323,7 +356,6 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         # define where to remove material
         pminus_m = np.ones((Sz, Sx))
         pminus_m[pad:Sz-pad, pad:Sx-pad] = random_values(Sz-2*pad, Sx-2*pad)
-        #pminus_m = random_values(Sz, Sx)
  
 
         # remove material where it has not been added
@@ -331,10 +363,13 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         remove = np.logical_and(surface>0, pm)
         save_img(1.0*remove, "remove.png")
         loaded = 1.0*np.logical_and(loaded, np.logical_not(remove))
+        save_img(loaded, "loaded_after_remove.png")
 
 
-        # keep only sites that belongs to the structure
-        loaded = twoway_new(loaded)
+        # boundary conditions
+        boundary = np.ones((Sz, Sx))
+        boundary[pad:Sz-pad, pad:Sx-pad] = twoway_new(loaded)[pad:Sz-pad, pad:Sx-pad]
+        loaded = boundary
 
 
     return loaded
@@ -364,10 +399,12 @@ def main():
 
     out_dir = 'output'
     create_dir_if_not_exists(out_dir)
-    save_img(data, out_dir+"/original.png")
+    save_img(data, "original.png")
 
     # run two way algorithm
     loaded = twoway_new(data)
+
+    save_img(loaded, "first_loaded.png")
 
     Lx = float(a * args.Sx[0])
     pc = ps_c*Fz/Lx
