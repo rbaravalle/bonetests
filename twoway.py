@@ -10,11 +10,11 @@ pminus = 0.007
 k = 0.9
 alpha = 0.003
 beta = 0.1
-a = 30.0
+a = 1.0
 pad = 5
 min_void_fraction = 0.4
 
-Fz = 2000.0 # MISSING
+Fz = 200.0 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # FIG. 1 PAPER
@@ -166,8 +166,6 @@ def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
     if Mx == 0 or Mz == 0:
         return 0
 
-    #if matrix[z,x] == 0: return 0
-
     Njx = compute_len_branch_x(matrix, z, x)
     Njz = compute_len_branch_z(matrix, z, x)
 
@@ -311,7 +309,6 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                 print "Wrong simulation"
                 exit()
 
-        #exit()
         P = np.zeros((Sz, Sx))
 
         Mz = np.zeros(Sz)
@@ -335,16 +332,15 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
         for z in range(Sz):
             for x in range(Sx):
-                if P[z,x] > 0:
-                    pp[z,x] = Pplus(loaded, P, z, x, pc)
+                pp[z,x] = Pplus(loaded, P, z, x, pc)
 
         surface = get_surface(loaded)
         neigh_surface = get_neigh_surface(loaded)
         save_img(surface, 'surface.png')
-        #save_img(neigh_surface, 'neigh_surface.png')
+        save_img(neigh_surface, 'neigh_surface.png')
         # define where to add material
         added = pp > random_values(Sz, Sx)
-        #added = np.logical_and(added , neigh_surface > 0)
+        added = np.logical_and(added , neigh_surface > 0)
         save_img(1.0*added, 'added.png')
 
         formation = 255*pp/np.max(pp)
@@ -362,6 +358,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         pm = np.logical_and((pminus > pminus_m), np.logical_not(added))
         remove = np.logical_and(surface>0, pm)
         save_img(1.0*remove, "remove.png")
+        save_img(loaded, "loaded_before_remove.png")
         loaded = 1.0*np.logical_and(loaded, np.logical_not(remove))
         save_img(loaded, "loaded_after_remove.png")
 
