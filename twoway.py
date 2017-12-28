@@ -14,7 +14,7 @@ a = 1.0
 pad = 5
 min_void_fraction = 0.4
 
-Fz = 200.0 # MISSING
+Fz = 2000.0 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # FIG. 1 PAPER
@@ -72,17 +72,19 @@ def paint(data, op, from_v, to_v, step_v):
 
 
                 # additionally, neighbors
-                if z % 2==0: # 45/2 degrees force
+                if z % 2 ==0: # 45/2 degrees force
    
                     i = 1
                     if x+i < data.shape[1] and data[op(z,1)][x+i]:
                         array[op(z,1)][x+i] = 1
                         i+=1
+                        #if i>1: break
                     
                     i = 1
                     if x-i > 0 and data[op(z,1)][x-i]:
                         array[op(z,1)][x-i] = 1
                         i+=1
+                        #if i>1: break
     return array
 
 def twoway_new(data):
@@ -301,12 +303,12 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
     for t in range(steps):
 
-        if t % 20 == 0:
+        if t % 5 == 0:
             save_img(loaded, out_dir+'/bone_out'+str_id+'_iteration_'+str(t)+'.png')
             vf = compute_void_fraction(loaded)
             print vf
             if vf < min_void_fraction:
-                print "Wrong simulation"
+                #print "Wrong simulation"
                 exit()
 
         P = np.zeros((Sz, Sx))
@@ -328,7 +330,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
                 P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
 
         # probabilities of new material
-        pp = np.zeros((Sz, Sx))
+        pp = np.zeros((Sz, Sx)).astype(np.float32)
 
         for z in range(Sz):
             for x in range(Sx):
@@ -341,10 +343,14 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         # define where to add material
         added = pp > random_values(Sz, Sx)
         added = np.logical_and(added , neigh_surface > 0)
+
         save_img(1.0*added, 'added.png')
 
-        formation = 255*pp/np.max(pp)
-        save_img(formation.astype(np.uint8), "formation.png")
+        press = P/np.max(P)
+        save_img(press, "pressures.png")
+
+        formation = np.minimum(1.0, pp)
+        save_img(formation, "formation.png")
 
         # add to the new matrix
         loaded = np.logical_or(loaded, added)
@@ -358,7 +364,8 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         pm = np.logical_and((pminus > pminus_m), np.logical_not(added))
         remove = np.logical_and(surface>0, pm)
         save_img(1.0*remove, "remove.png")
-        save_img(loaded, "loaded_before_remove.png")
+        print "Added:", np.sum(added > 0), "Removed:", np.sum(remove > 0)
+        save_img(1.0*loaded, "loaded_before_remove.png")
         loaded = 1.0*np.logical_and(loaded, np.logical_not(remove))
         save_img(loaded, "loaded_after_remove.png")
 
@@ -377,7 +384,7 @@ def save_img(arr, filename):
     if im.mode != 'RGB':
         im = im.convert('RGB')
     im.save(filename)
-    print "Saved", filename
+    #print "Saved", filename
 
 def main():
     parser = argparse.ArgumentParser(description='Run bone simulation')
