@@ -12,9 +12,9 @@ alpha = 0.003
 beta = 0.1
 a = 1.0
 pad = 5
-min_void_fraction = 0.4
+min_void_fraction = 0.3
 
-Fz = 2000.0 # MISSING
+Fz = 200.0 # MISSING
 Lx = 0 # WILL BE DEFINED
 
 ps_c = 2.5 # FIG. 1 PAPER
@@ -48,7 +48,7 @@ def paint_x(data, op, from_v, to_v, step_v):
                 array[z][op(x,1)] = 1
 
                 # additionally, neighbors
-                if False and x % 2==0: # 45/2 degrees force
+                if x % 2==0: # 45/2 degrees force
                     i = 1
                     if z+i < data.shape[0] and data[z+i][op(x,1)]:
                         array[z+i][op(x,1)] = 1
@@ -72,7 +72,7 @@ def paint(data, op, from_v, to_v, step_v):
 
 
                 # additionally, neighbors
-                if z % 2 ==0: # 45/2 degrees force
+                if True or z % 2 ==0: # 45/2 degrees force
    
                     i = 1
                     if x+i < data.shape[1] and data[op(z,1)][x+i]:
