@@ -239,17 +239,21 @@ def get_8_neighbors(matrix, z, x):
         print "Invalid call to get_neighbors!. Shape:", matrix.shape, z, x
         exit()
 
+    if x-1 > 0:
+        if z-1 > 0:
+            neighbors.append([z-1, x-1])
+        neighbors.append([z, x-1])
 
     if z-1 > 0:
-        if x-1 > 0:
-            neighbors.append([z-1, x-1])
-            neighbors.append([z, x-1])
 
         neighbors.append([z-1, x])
 
         if x+1 < matrix.shape[1]:
             neighbors.append([z-1, x+1])
-            neighbors.append([z, x+1])
+
+    if x+1 < matrix.shape[1]:
+        neighbors.append([z, x+1])
+            
 
     if z+1 < matrix.shape[0]:
         neighbors.append([z+1, x])
