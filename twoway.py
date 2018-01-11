@@ -48,53 +48,53 @@ def paint_x(data, op, from_v, to_v, step_v):
                 array[z][op(x,1)] = 1
 
                 # additionally, neighbors
-                if x % 2==0: # 45/2 degrees force
-                    i = 1
-                    if z+i < data.shape[0] and data[z+i][op(x,1)]:
-                        array[z+i][op(x,1)] = 1
-                        i+=1
-                    
-                    i = 1
+                #if True or x % 2==0: # 45/2 degrees force
+                i = 1
+                while z+i < data.shape[0] and data[z+i][op(x,1)]:
+                    array[z+i][op(x,1)] = 1
+                    i+=1
+                    if i>3: break
+                
+                i = 1
 
-                    if z-i > 0 and data[z-i][op(x,1)]:
-                        array[z-i][op(x,1)] = 1
-                        i+=1
+                while z-i > 0 and data[z-i][op(x,1)]:
+                    array[z-i][op(x,1)] = 1
+                    i+=1
+                    if i>3: break
 
     return array
 
 def paint(data, op, from_v, to_v, step_v):
     array = np.zeros(data.shape)
     array[from_v] = data[from_v]
+
     for z in range(from_v, to_v, step_v):
         for x in range(data.shape[1]):
             if array[z][x] and data[op(z,1)][x]:
                 array[op(z,1)][x] = 1
 
-
-                # additionally, neighbors
-                if True or z % 2 ==0: # 45/2 degrees force
-   
-                    i = 1
-                    if x+i < data.shape[1] and data[op(z,1)][x+i]:
-                        array[op(z,1)][x+i] = 1
-                        i+=1
-                        #if i>1: break
+  
+                i = 1
+                while x+i < data.shape[1] and data[op(z,1)][x+i]:
+                    array[op(z,1)][x+i] = 1
+                    i+=1
+                    if i>1: break
                     
-                    i = 1
-                    if x-i > 0 and data[op(z,1)][x-i]:
-                        array[op(z,1)][x-i] = 1
-                        i+=1
-                        #if i>1: break
+                i = 1
+                while x-i > 0 and data[op(z,1)][x-i]:
+                    array[op(z,1)][x-i] = 1
+                    i+=1
+                    if i>1: break
     return array
 
 def twoway_new(data):
 
     # bottom -> top
-    connected = paint(data, np.add, 0, data.shape[0]-1, 1)
+    connected = paint_x(data, np.add, 0, data.shape[0]-1, 1)
     save_img(connected,"connected1.png")
 
 
-    connected2 = paint(connected, np.subtract, data.shape[0]-1, -1, -1)
+    connected2 = paint_x(connected, np.subtract, data.shape[0]-1, -1, -1)
     save_img(connected2,"connected2.png")
 
     return connected2
@@ -163,7 +163,7 @@ def compute_len_branch_z(matrix, z, x):
 
 # maximal pressure p at a given position (in matrix matrix)
 # (mechanical stimulus the bone cells respond to)
-def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
+def p(matrix, z, x, Mz, Mx, Az_v, Ax_v):
 
     if Mx == 0 or Mz == 0:
         return 0
@@ -184,6 +184,29 @@ def p(matrix, z, x, Mx, Mz, Ax_v, Az_v):
     result = factor * maxim
 
     return result
+
+# return possible neighbors of z,x in matrix
+def get_2_neighbors(matrix, z, x):
+    neighbors = []
+
+    if z < 0 or x < 0 or z > matrix.shape[0] or x > matrix.shape[1]:
+        print "Invalid call to get_neighbors!. Shape:", matrix.shape, z, x
+        exit()
+
+    if x-1 > 0:
+        neighbors.append([z, x-1])
+
+    if x+1 < matrix.shape[1]:
+        neighbors.append([z, x+1])
+
+    #if z-1 > 0:
+    #    neighbors.append([z-1, x])
+
+    #if z+1 < matrix.shape[0]:
+    #    neighbors.append([z+1, x])
+
+
+    return neighbors
 
 # return possible neighbors of z,x in matrix
 def get_4_neighbors(matrix, z, x):
@@ -308,10 +331,10 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
             vf = compute_void_fraction(loaded)
             print vf
             if vf < min_void_fraction:
-                #print "Wrong simulation"
+                print "Wrong simulation"
                 exit()
 
-        P = np.zeros((Sz, Sx))
+        P = np.zeros((Sz, Sx)).astype(np.float32)
 
         Mz = np.zeros(Sz)
         Mx = np.zeros(Sx)
@@ -327,7 +350,7 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
         # compute pressures
         for z in range(Sz):
             for x in range(Sx):
-                P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Ax_v, Az_v)
+                P[z,x] = p(loaded, z, x, Mz[z], Mx[x], Az_v, Ax_v)
 
         # probabilities of new material
         pp = np.zeros((Sz, Sx)).astype(np.float32)
@@ -372,8 +395,8 @@ def simulate(loaded, steps, Sz, Sx, str_id, out_dir, pc):
 
         # boundary conditions
         boundary = np.ones((Sz, Sx))
-        boundary[pad:Sz-pad, pad:Sx-pad] = twoway_new(loaded)[pad:Sz-pad, pad:Sx-pad]
-        loaded = boundary
+        boundary[pad:Sz-pad, pad:Sx-pad] = loaded[pad:Sz-pad, pad:Sx-pad]
+        loaded = twoway_new(boundary)
 
 
     return loaded
